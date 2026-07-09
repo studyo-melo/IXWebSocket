@@ -47,6 +47,12 @@ if (USE_ZLIB)
   )
 endif()
 
+if (USE_MBED_TLS)
+  list(APPEND TEST_TARGET_NAMES
+    IXSocketMbedTLSRecvTest
+  )
+endif()
+
 # Ping test fails intermittently, disabling them for now
 # IXWebSocketPingTest.cpp
 # IXWebSocketPingTimeoutTest.cpp

@@ -356,6 +356,22 @@ namespace ix
         }
     }
 
+    // MELO_MINGW_MBEDTLS_NST: a TLS 1.3 server (e.g. Cloudflare) sends a
+    // NewSessionTicket right after the handshake; mbedtls surfaces it as
+    // MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET on the first read of the
+    // HTTP 101 status line. Treating it as a hard error returned -1, so readLine
+    // got 0 bytes and every WS route failed with "Failed reading HTTP status
+    // line (read 0 bytes)". It must be a retry, not an error.
+    MbedTLSReadOutcome classifyMbedTLSReadResult(ssize_t res)
+    {
+        if (res > 0) return MbedTLSReadOutcome::Data;
+        if (res == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET) return MbedTLSReadOutcome::Retry;
+        if (res == 0) return MbedTLSReadOutcome::ConnectionReset;
+        if (res == MBEDTLS_ERR_SSL_WANT_READ || res == MBEDTLS_ERR_SSL_WANT_WRITE)
+            return MbedTLSReadOutcome::WouldBlock;
+        return MbedTLSReadOutcome::Error;
+    }
+
     ssize_t SocketMbedTLS::recv(void* buf, size_t nbyte)
     {
         while (true)
@@ -364,30 +380,22 @@ namespace ix
 
             ssize_t res = mbedtls_ssl_read(&_ssl, (unsigned char*) buf, (int) nbyte);
 
-            if (res > 0)
+            switch (classifyMbedTLSReadResult(res))
             {
-                return res;
+                case MbedTLSReadOutcome::Data:
+                    return res;
+                case MbedTLSReadOutcome::Retry:
+                    continue;
+                case MbedTLSReadOutcome::ConnectionReset:
+                    errno = ECONNRESET;
+                    return -1;
+                case MbedTLSReadOutcome::WouldBlock:
+                    errno = EWOULDBLOCK;
+                    return -1;
+                case MbedTLSReadOutcome::Error:
+                    return -1;
             }
-
-            // MELO_MINGW_MBEDTLS_NST: a TLS 1.3 server (e.g. Cloudflare) sends a
-            // NewSessionTicket right after the handshake; mbedtls surfaces it as this
-            // code on the first read of the HTTP 101 status line. It is not an error --
-            // re-read to fetch the real bytes (or WANT_READ for a clean poll retry).
-            if (res == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET)
-            {
-                continue;
-            }
-
-            if (res == 0)
-            {
-                errno = ECONNRESET;
-            }
-
-            if (res == MBEDTLS_ERR_SSL_WANT_READ || res == MBEDTLS_ERR_SSL_WANT_WRITE)
-            {
-                errno = EWOULDBLOCK;
-            }
-            return -1;
+            return -1; // unreachable; silences -Wreturn-type on some compilers
         }
     }
 

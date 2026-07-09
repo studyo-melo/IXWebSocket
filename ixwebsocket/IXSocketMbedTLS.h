@@ -24,6 +24,20 @@
 
 namespace ix
 {
+    // Pure classification of an mbedtls_ssl_read() return value. Extracted from
+    // SocketMbedTLS::recv() so the TLS 1.3 NewSessionTicket handling
+    // (MELO_MINGW_MBEDTLS_NST) is unit-testable without a live TLS session.
+    enum class MbedTLSReadOutcome
+    {
+        Data,            // res > 0: return the byte count
+        Retry,           // NewSessionTicket: re-read, not an error
+        WouldBlock,      // WANT_READ / WANT_WRITE: errno EWOULDBLOCK, return -1
+        ConnectionReset, // res == 0: errno ECONNRESET, return -1
+        Error            // anything else: return -1
+    };
+
+    MbedTLSReadOutcome classifyMbedTLSReadResult(ssize_t res);
+
     class SocketMbedTLS final : public Socket
     {
     public:
