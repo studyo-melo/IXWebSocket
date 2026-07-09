@@ -38,6 +38,10 @@ namespace ix
 
     MbedTLSReadOutcome classifyMbedTLSReadResult(ssize_t res);
 
+    // MELO_MINGW_MBEDTLS_NST diag: last non-positive mbedtls_ssl_read() result on
+    // this thread, so a failed handshake read can report the raw code.
+    int lastMbedTLSRecvError();
+
     class SocketMbedTLS final : public Socket
     {
     public:

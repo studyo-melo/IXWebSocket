@@ -356,6 +356,15 @@ namespace ix
         }
     }
 
+    // MELO_MINGW_MBEDTLS_NST diag: last non-positive mbedtls_ssl_read() result,
+    // per thread, so a failed handshake read can report the raw code.
+    static thread_local int g_lastMbedRecvRes = 0;
+
+    int lastMbedTLSRecvError()
+    {
+        return g_lastMbedRecvRes;
+    }
+
     // MELO_MINGW_MBEDTLS_NST: a TLS 1.3 server (e.g. Cloudflare) sends a
     // NewSessionTicket right after the handshake; mbedtls surfaces it as
     // MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET on the first read of the
@@ -379,6 +388,8 @@ namespace ix
             std::lock_guard<std::mutex> lock(_mutex);
 
             ssize_t res = mbedtls_ssl_read(&_ssl, (unsigned char*) buf, (int) nbyte);
+
+            if (res <= 0) g_lastMbedRecvRes = (int) res; // MELO_MINGW_MBEDTLS_NST diag
 
             switch (classifyMbedTLSReadResult(res))
             {

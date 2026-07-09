@@ -9,6 +9,7 @@
 #include "IXBase64.h"
 #include "IXHttp.h"
 #include "IXSocketConnect.h"
+#include "IXSocketMbedTLS.h"
 #include "IXStrCaseCompare.h"
 #include "IXUrlParser.h"
 #include "IXUserAgent.h"
@@ -166,8 +167,13 @@ namespace ix
 
         if (!lineValid)
         {
+            std::string diag = " (read " + std::to_string(line.size()) + " bytes"; // MELO_MINGW_WS_READLEN
+#ifdef IXWEBSOCKET_USE_MBED_TLS
+            diag += ", mbedRes=" + std::to_string(lastMbedTLSRecvError()); // MELO_MINGW_MBEDTLS_NST diag
+#endif
+            diag += ")";
             return WebSocketInitResult(
-                false, 0, std::string("Failed reading HTTP status line from ") + url + " (read " + std::to_string(line.size()) + " bytes)"); // MELO_MINGW_WS_READLEN
+                false, 0, std::string("Failed reading HTTP status line from ") + url + diag);
         }
 
         // Validate status
