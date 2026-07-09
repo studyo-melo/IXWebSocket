@@ -328,9 +328,9 @@ namespace ix
         mbedtls_x509_crt_free(&_cacert);
         mbedtls_x509_crt_free(&_cert);
         mbedtls_pk_free(&_pkey);
-#if MBEDTLS_VERSION_MAJOR >= 4 || (MBEDTLS_VERSION_MAJOR == 3 && MBEDTLS_VERSION_MINOR >= 6)
-        mbedtls_psa_crypto_free();
-#endif
+        // MELO_MINGW_PSA_NOFREE: PSA crypto is process-global; freeing it on one
+        // socket close tears it down for sibling sockets still in ssl_read ->
+        // intermittent "Failed reading HTTP status line". Init is idempotent.
 
         Socket::close();
     }
