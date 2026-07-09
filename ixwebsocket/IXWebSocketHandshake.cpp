@@ -8,6 +8,7 @@
 
 #include "IXBase64.h"
 #include "IXHttp.h"
+#include "IXMeloLog.h"
 #include "IXSocketConnect.h"
 #include "IXSocketMbedTLS.h"
 #include "IXStrCaseCompare.h"
@@ -172,9 +173,12 @@ namespace ix
             diag += ", mbedRes=" + std::to_string(lastMbedTLSRecvError()); // MELO_MINGW_MBEDTLS_NST diag
 #endif
             diag += ")";
+            meloLog("handshake read status line FAIL url=" + url + diag);
             return WebSocketInitResult(
                 false, 0, std::string("Failed reading HTTP status line from ") + url + diag);
         }
+
+        meloLog("handshake status line OK url=" + url + " line=" + line);
 
         // Validate status
         auto statusLine = Http::parseStatusLine(line);

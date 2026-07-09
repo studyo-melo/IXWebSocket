@@ -11,6 +11,7 @@
 
 #include "IXSocketMbedTLS.h"
 
+#include "IXMeloLog.h"
 #include "IXNetSystem.h"
 #include "IXSocket.h"
 #include "IXSocketConnect.h"
@@ -308,10 +309,15 @@ namespace ix
             errMsg = "error in handshake : ";
             errMsg += buf;
 
+            meloLog("tls handshake FAIL host=" + host + ":" + std::to_string(port) +
+                    " res=" + std::to_string(res) + " (" + buf + ")");
             close();
             return false;
         }
 
+        meloLog("tls handshake OK host=" + host + ":" + std::to_string(port) +
+                " ver=" + std::string(mbedtls_ssl_get_version(&_ssl)) +
+                " cipher=" + std::string(mbedtls_ssl_get_ciphersuite(&_ssl)));
         return true;
     }
 
@@ -396,15 +402,22 @@ namespace ix
                 case MbedTLSReadOutcome::Data:
                     return res;
                 case MbedTLSReadOutcome::Retry:
+                    meloLog("recv NewSessionTicket -> retry");
                     continue;
                 case MbedTLSReadOutcome::ConnectionReset:
+                    meloLog("recv peer closed (res=0)");
                     errno = ECONNRESET;
                     return -1;
                 case MbedTLSReadOutcome::WouldBlock:
                     errno = EWOULDBLOCK;
                     return -1;
                 case MbedTLSReadOutcome::Error:
+                {
+                    char errBuf[128];
+                    mbedtls_strerror((int) res, errBuf, sizeof(errBuf));
+                    meloLog("recv error res=" + std::to_string((int) res) + " (" + errBuf + ")");
                     return -1;
+                }
             }
             return -1; // unreachable; silences -Wreturn-type on some compilers
         }

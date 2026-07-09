@@ -38,6 +38,7 @@ set( IXWEBSOCKET_SOURCES
     ixwebsocket/IXHttp.cpp
     ixwebsocket/IXHttpClient.cpp
     ixwebsocket/IXHttpServer.cpp
+    ixwebsocket/IXMeloLog.cpp
     ixwebsocket/IXNetSystem.cpp
     ixwebsocket/IXSelectInterrupt.cpp
     ixwebsocket/IXSelectInterruptFactory.cpp
