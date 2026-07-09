@@ -167,7 +167,7 @@ namespace ix
         if (!lineValid)
         {
             return WebSocketInitResult(
-                false, 0, std::string("Failed reading HTTP status line from ") + url);
+                false, 0, std::string("Failed reading HTTP status line from ") + url + " (read " + std::to_string(line.size()) + " bytes)"); // MELO_MINGW_WS_READLEN
         }
 
         // Validate status
