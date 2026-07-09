@@ -369,6 +369,15 @@ namespace ix
                 return res;
             }
 
+            // MELO_MINGW_MBEDTLS_NST: a TLS 1.3 server (e.g. Cloudflare) sends a
+            // NewSessionTicket right after the handshake; mbedtls surfaces it as this
+            // code on the first read of the HTTP 101 status line. It is not an error --
+            // re-read to fetch the real bytes (or WANT_READ for a clean poll retry).
+            if (res == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET)
+            {
+                continue;
+            }
+
             if (res == 0)
             {
                 errno = ECONNRESET;
