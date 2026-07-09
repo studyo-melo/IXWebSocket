@@ -354,6 +354,11 @@ namespace ix
         else if (res == MBEDTLS_ERR_SSL_WANT_READ || res == MBEDTLS_ERR_SSL_WANT_WRITE)
         {
             errno = EWOULDBLOCK;
+#ifdef _WIN32
+            // MELO_MINGW_WSA_WOULDBLOCK: mirror the retryable state into
+            // WSAGetLastError() (see recv()).
+            WSASetLastError(WSAEWOULDBLOCK);
+#endif
             return -1;
         }
         else
@@ -410,6 +415,13 @@ namespace ix
                     return -1;
                 case MbedTLSReadOutcome::WouldBlock:
                     errno = EWOULDBLOCK;
+#ifdef _WIN32
+                    // MELO_MINGW_WSA_WOULDBLOCK: Socket::isWaitNeeded() checks
+                    // WSAGetLastError() on Windows, not C errno. Without this the
+                    // first post-handshake WANT_READ (101 not yet arrived on a
+                    // non-blocking socket) is treated as fatal -> "read 0 bytes".
+                    WSASetLastError(WSAEWOULDBLOCK);
+#endif
                     return -1;
                 case MbedTLSReadOutcome::Error:
                 {
